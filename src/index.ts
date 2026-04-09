@@ -1,11 +1,13 @@
-import log from "@osyris/log";
+import pino from "pino";
 import { Elysia } from "elysia";
+
+const log = pino();
 
 const BANNED_SET = new Set(["dependabot[bot]"]);
 
 const app = new Elysia();
 
-app.onError(({ code, error }) => log.error(error.toString(), { code, error }));
+app.onError(({ code, error }) => log.error({ code, error }, error.toString()));
 
 app.get("/", () => "ok");
 
