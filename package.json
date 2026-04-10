@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "@biomejs/biome": "^1.8.3",
-    "@osyris/log": "^1.0.3",
     "elysia": "^1.1.5",
-    "kleur": "^4.1.5"
+    "pino": "^10.3.1"
   }
 }
