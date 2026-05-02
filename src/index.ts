@@ -19,8 +19,6 @@ app.post("/api/webhooks/*", async ({ request, path }) => {
 		return "";
 	}
 
-	log.info("Forwarded request");
-
 	const method = request.method;
 
 	const headers = new Headers(request.headers);
@@ -28,7 +26,16 @@ app.post("/api/webhooks/*", async ({ request, path }) => {
 
 	const body = JSON.stringify(payload);
 
-	return fetch(new Request(`https://discord.com${path}`, { method, headers, body }));
+	const response = await fetch(`https://discord.com${path}`, { method, headers, body });
+
+	if (!response.ok) {
+		const responseBody = await response.text();
+		log.error({ status: response.status, body: responseBody, path }, "Discord rejected webhook");
+	} else {
+		log.info({ status: response.status }, "Forwarded request");
+	}
+
+	return new Response(null, { status: response.status });
 });
 
 app.listen(Bun.env.PORT || 8080);
