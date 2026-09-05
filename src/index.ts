@@ -21,8 +21,15 @@ app.post("/api/webhooks/*", async ({ request, path }) => {
 
 	const method = request.method;
 
-	const headers = new Headers(request.headers);
-	headers.delete("host");
+	// incoming proxy headers (especially CF-Connecting-IP) cause Cloudflare to reject the second hop to Discord with
+	// HTTP 403 / error 1000.
+	const headers = new Headers({ "content-type": "application/json" });
+	for (const name of ["x-github-event", "x-github-delivery", "user-agent"]) {
+		const value = request.headers.get(name);
+		if (value !== null) {
+			headers.set(name, value);
+		}
+	}
 
 	const body = JSON.stringify(payload);
 
@@ -30,7 +37,8 @@ app.post("/api/webhooks/*", async ({ request, path }) => {
 
 	if (!response.ok) {
 		const responseBody = await response.text();
-		log.error({ status: response.status, body: responseBody, path }, "Discord rejected webhook");
+		const delivery = request.headers.get("x-github-delivery");
+		log.error({ status: response.status, body: responseBody, path, delivery }, "Discord rejected webhook");
 	} else {
 		log.info({ status: response.status }, "Forwarded request");
 	}
