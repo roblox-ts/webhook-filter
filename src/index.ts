@@ -3,7 +3,7 @@ import { Elysia } from "elysia";
 
 const log = pino();
 
-const BANNED_SET = new Set(["dependabot[bot]"]);
+const IGNORED_AUTHORS = new Set(["dependabot[bot]"]);
 
 const app = new Elysia();
 
@@ -14,9 +14,21 @@ app.get("/", () => "ok");
 app.post("/api/webhooks/*", async ({ request, path }) => {
 	const payload = await request.json();
 
-	if (BANNED_SET.has(payload?.pull_request?.user?.login) || BANNED_SET.has(payload?.head_commit?.author?.name)) {
+	if (
+		IGNORED_AUTHORS.has(payload?.pull_request?.user?.login) ||
+		IGNORED_AUTHORS.has(payload?.head_commit?.author?.name)
+	) {
 		log.info("Blocked request");
 		return "";
+	}
+
+	// ignore pushes to non-default branches
+	if (request.headers.get("x-github-event") === "push") {
+		const defaultBranch = payload?.repository?.default_branch;
+		if (typeof defaultBranch !== "string" || !defaultBranch || payload?.ref !== `refs/heads/${defaultBranch}`) {
+			log.info({ ref: payload?.ref, defaultBranch }, "Blocked push outside default branch");
+			return "";
+		}
 	}
 
 	const method = request.method;
