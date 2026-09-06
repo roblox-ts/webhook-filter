@@ -14,6 +14,11 @@ app.get("/", () => "ok");
 app.post("/api/webhooks/*", async ({ request, path }) => {
 	const payload = await request.json();
 
+	if (payload?.repository?.private === true) {
+		log.info("Blocked event from private repository");
+		return "";
+	}
+
 	if (
 		IGNORED_AUTHORS.has(payload?.pull_request?.user?.login) ||
 		IGNORED_AUTHORS.has(payload?.head_commit?.author?.name)
